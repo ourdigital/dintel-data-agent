@@ -1,0 +1,137 @@
+# 데이터 파이프라인 설정
+
+# 데이터베이스 설정
+database:
+  type: "sqlite"  # sqlite 또는 mysql
+  # SQLite 설정
+  sqlite:
+    db_path: "data/database.db"
+  # MySQL 설정 (선택적)
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "data_analysis"
+    user: "username"
+    password: "password"
+
+# 데이터 수집 설정
+collection:
+  # 일반 설정
+  default_date_range: "last_30_days"  # last_7_days, last_30_days, last_90_days, custom
+  custom_date_range:
+    start_date: "2024-01-01"
+    end_date: "2024-01-31"
+  
+  # 소스별 설정
+  sources:
+    google_analytics:
+      enabled: true
+      metrics:
+        - "sessions"
+        - "pageviews"
+        - "bounceRate"
+        - "avgSessionDuration"
+      dimensions:
+        - "date"
+        - "deviceCategory"
+        - "country"
+      schedule: "daily"  # daily, weekly, monthly
+    
+    google_search_console:
+      enabled: true
+      metrics:
+        - "clicks"
+        - "impressions"
+        - "ctr"
+        - "position"
+      dimensions:
+        - "date"
+        - "query"
+        - "page"
+      schedule: "daily"
+    
+    meta_ads:
+      enabled: true
+      fields:
+        - "campaign_name"
+        - "adset_name"
+        - "spend"
+        - "impressions"
+        - "clicks"
+        - "actions"
+      level: "campaign"  # account, campaign, adset, ad
+      schedule: "daily"
+    
+    google_ads:
+      enabled: true
+      report_type: "CAMPAIGN_PERFORMANCE_REPORT"
+      fields:
+        - "CampaignName"
+        - "CampaignId"
+        - "Impressions"
+        - "Clicks"
+        - "Cost"
+        - "Conversions"
+      schedule: "daily"
+    
+    naver_ads:
+      enabled: true
+      source_type: "csv"  # csv, api
+      csv_path: "data/raw/naver_ads/"
+      schedule: "weekly"
+    
+    kakao_ads:
+      enabled: true
+      source_type: "csv"
+      csv_path: "data/raw/kakao_ads/"
+      schedule: "weekly"
+
+# 데이터 처리 설정
+processing:
+  clean_duplicates: true
+  handle_missing_values: "drop"  # drop, fill_mean, fill_median, fill_zero
+  standardize_date_format: "YYYY-MM-DD"
+  auto_merge_sources: true
+  merge_keys:
+    - "date"
+    - "campaign_id"
+
+# 분석 설정
+analysis:
+  default_metrics:
+    - "ctr"
+    - "conversion_rate"
+    - "cost_per_conversion"
+    - "roi"
+  correlation_analysis: true
+  time_series_analysis: true
+  anomaly_detection: false
+
+# 시각화 설정
+visualization:
+  default_chart_type: "line"  # line, bar, scatter, pie
+  color_palette: "Set1"
+  save_charts: true
+  output_dir: "data/output/charts/"
+
+# Streamlit 앱 설정
+app:
+  title: "데이터 분석 대시보드"
+  theme:
+    primary_color: "#FF4B4B"
+    background_color: "#F0F2F6"
+  pages:
+    - "overview"
+    - "traffic_analysis"
+    - "conversion_analysis"
+    - "campaign_performance"
+    - "custom_reports"
+  default_page: "overview"
+
+# 로깅 설정
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_to_file: true
+  log_file: "logs/pipeline.log"
+  rotate_logs: true
+  max_log_size_mb: 10
