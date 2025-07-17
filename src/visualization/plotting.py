@@ -565,7 +565,7 @@ def create_interactive_plot(
     size: Optional[str] = None,
     title: str = '인터랙티브 그래프',
     **kwargs: Any
-) -> Union[px.Figure, go.Figure]:
+) -> go.Figure:
     """
     plotly를 사용하여 인터랙티브 그래프를 생성합니다.
     
@@ -590,7 +590,7 @@ def create_interactive_plot(
         
     Returns
     -------
-    fig : Union[px.Figure, go.Figure]
+    fig : Union[go.Figure, go.Figure]
         plotly 그림 객체
     """
     try:
@@ -661,7 +661,7 @@ def create_interactive_plot(
         raise
 
 def save_plot_to_html(
-    fig: Union[px.Figure, go.Figure],
+    fig: Union[go.Figure, go.Figure],
     output_path: str,
     include_plotlyjs: bool = True,
     full_html: bool = True
@@ -671,7 +671,7 @@ def save_plot_to_html(
     
     Parameters
     ----------
-    fig : px.Figure or go.Figure
+    fig : go.Figure or go.Figure
         저장할 plotly 그림 객체
     output_path : str
         출력 파일 경로

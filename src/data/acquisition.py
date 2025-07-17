@@ -151,9 +151,9 @@ class DataAcquisition:
             connector = self.connectors[source_name]
             
             # 각 커넥터 유형에 맞는 메서드 호출
+            data = connector.fetch_data()
+            
             if source_name == 'google_analytics':
-                data = connector.fetch_data()
-                
                 # 소스 정보 추가
                 if not data.empty:
                     data['source'] = 'Google Analytics'
@@ -161,29 +161,25 @@ class DataAcquisition:
             # 다른 소스 처리 (주석 해제 또는 구현 필요)
             """
             elif source_name == 'google_ads':
-                data = connector.fetch_data()
                 if not data.empty:
                     data['source'] = 'Google Ads'
                 
             elif source_name == 'meta_ads':
-                data = connector.fetch_data()
                 if not data.empty:
                     data['source'] = 'Meta Ads'
                 
             elif source_name == 'naver_ads':
-                data = connector.fetch_data()
                 if not data.empty:
                     data['source'] = 'Naver Ads'
                 
             elif source_name == 'kakao_ads':
-                data = connector.fetch_data()
                 if not data.empty:
                     data['source'] = 'Kakao Ads'
             """
             
-            else:
-                logger.warning(f"소스 '{source_name}'에 대한 데이터 수집 메서드가 정의되지 않았습니다.")
-                data = pd.DataFrame()
+            # 기본 처리: 데이터가 비어있지 않으면 기본 소스명 설정
+            if not data.empty and 'source' not in data.columns:
+                data['source'] = source_name.replace('_', ' ').title()
                 
             logger.info(f"'{source_name}'에서 데이터 수집 완료, 크기: {data.shape}")
             return data
