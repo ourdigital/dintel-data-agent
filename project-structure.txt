@@ -1,52 +1,52 @@
 data-analysis-agent/
-├── README.md                  # 프로젝트 문서화
-├── requirements.txt           # 의존성 패키지
-├── setup.py                   # 패키지 설치
-├── .gitignore                 # Git 무시 파일 목록
-├── config/                    # 설정 파일
-│   ├── api_credentials.yaml.example   # API 인증 정보 템플릿 
-│   └── pipeline_config.yaml   # 파이프라인 설정
-├── data/                      # 데이터 저장 디렉토리
-│   ├── raw/                   # 원본 데이터
-│   └── processed/             # 처리된 데이터
-├── notebooks/                 # 탐색용 Jupyter 노트북
-│   ├── eda_template.ipynb     # EDA 템플릿
-│   └── examples/              # 예제 분석 노트북
-├── src/                       # 소스 코드
+├── README.md                  # Project documentation
+├── requirements.txt           # Python dependencies
+├── setup.py                   # Package installation script
+├── .gitignore                 # Git ignore file list
+├── config/                    # Configuration files
+│   ├── api_credentials.yaml.example   # API credentials template
+│   └── pipeline_config.yaml   # Pipeline configuration
+├── data/                      # Data storage directory
+│   ├── raw/                   # Raw data files
+│   └── processed/             # Processed data files
+├── notebooks/                 # Jupyter notebooks for exploration
+│   ├── eda_template.ipynb     # EDA template notebook
+│   └── examples/              # Example analysis notebooks
+├── src/                       # Source code
 │   ├── __init__.py
-│   ├── data/                  # 데이터 처리 모듈
+│   ├── data/                  # Data processing modules
 │   │   ├── __init__.py
-│   │   ├── acquisition.py     # 데이터 수집 함수 (GA, GSC, Ads 등)
-│   │   ├── connectors/        # 데이터 소스별 커넥터
+│   │   ├── acquisition.py     # Data collection functions (GA, GSC, Ads, etc.)
+│   │   ├── connectors/        # Data source connectors
 │   │   │   ├── __init__.py
 │   │   │   ├── google_analytics.py
 │   │   │   ├── google_ads.py
 │   │   │   ├── meta_ads.py
 │   │   │   ├── naver_ads.py
 │   │   │   └── kakao_ads.py
-│   │   └── processing.py      # 데이터 정제 및 변환
-│   ├── database/              # 데이터베이스 모듈
+│   │   └── processing.py      # Data cleaning and transformation
+│   ├── database/              # Database modules
 │   │   ├── __init__.py
-│   │   ├── db_manager.py      # DB 연결 및 관리
-│   │   └── models.py          # 데이터 모델 정의
-│   ├── analysis/              # 분석 모듈
+│   │   ├── db_manager.py      # Database connection and management
+│   │   └── models.py          # Data model definitions
+│   ├── analysis/              # Analysis modules
 │   │   ├── __init__.py
-│   │   ├── statistics.py      # 통계 분석
-│   │   └── modeling.py        # ML 모델 구현
-│   ├── visualization/         # 시각화 모듈
+│   │   ├── statistics.py      # Statistical analysis
+│   │   └── modeling.py        # Machine learning model implementations
+│   ├── visualization/         # Visualization modules
 │   │   ├── __init__.py
-│   │   └── plotting.py        # 그래프 함수
-│   ├── app/                   # Streamlit 앱
+│   │   └── plotting.py        # Chart and graph functions
+│   ├── app/                   # Streamlit application
 │   │   ├── __init__.py
-│   │   ├── dashboard.py       # 메인 대시보드 
-│   │   └── components/        # 재사용 가능한 컴포넌트
-│   └── utils/                 # 유틸리티 모듈
+│   │   ├── dashboard.py       # Main dashboard application
+│   │   └── components/        # Reusable UI components
+│   └── utils/                 # Utility modules
 │       ├── __init__.py
-│       ├── helpers.py         # 헬퍼 함수
-│       └── logging_config.py  # 로깅 설정
-├── tests/                     # 단위 테스트
+│       ├── helpers.py         # Helper functions
+│       └── logging_config.py  # Logging configuration
+├── tests/                     # Unit tests
 │   ├── __init__.py
 │   ├── test_acquisition.py
 │   ├── test_processing.py
 │   └── test_visualization.py
-└── main.py                    # 메인 스크립트
+└── main.py                    # Main execution script

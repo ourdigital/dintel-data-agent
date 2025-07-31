@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-데이터 분석 에이전트 메인 스크립트.
-다양한 데이터 소스에서 데이터를 수집, 처리, 분석하고 결과를 보고합니다.
+Data Analysis Agent Main Script.
+Collects, processes, analyzes data from various sources and reports results.
 """
 
 import os
@@ -13,141 +13,141 @@ from typing import Dict, List, Optional, Union, Any
 import pandas as pd
 import subprocess
 
-# 내부 모듈 가져오기
+# Import internal modules
 from src.utils.logging_config import setup_logging
 from src.database.db_manager import DatabaseManager
 from src.data.acquisition import DataAcquisition
 from src.data.processing import DataProcessor
 import src.visualization.plotting as plotting
 
-# 로깅 설정
+# Setup logging
 logger = setup_logging()
 
 def parse_arguments():
-    """명령줄 인수를 파싱합니다."""
-    parser = argparse.ArgumentParser(description="데이터 분석 에이전트")
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description="Data Analysis Agent")
     
     parser.add_argument(
         '--action',
         type=str,
         choices=['collect', 'collect-all', 'process', 'analyze', 'visualize', 'dashboard', 'pipeline'],
         default='pipeline',
-        help='실행할 작업'
+        help='Action to execute'
     )
     
     parser.add_argument(
         '--source',
         type=str,
-        help='데이터 소스 (action이 collect인 경우 필요)'
+        help='Data source (required when action is collect)'
     )
     
     parser.add_argument(
         '--output-dir',
         type=str,
         default='data/output',
-        help='출력 디렉토리'
+        help='Output directory'
     )
     
     parser.add_argument(
         '--config',
         type=str,
         default='config/pipeline_config.yaml',
-        help='설정 파일 경로'
+        help='Configuration file path'
     )
     
     parser.add_argument(
         '--credentials',
         type=str,
         default='config/api_credentials.yaml',
-        help='인증 정보 파일 경로'
+        help='Credentials file path'
     )
     
     parser.add_argument(
         '--debug',
         action='store_true',
-        help='디버그 모드 활성화'
+        help='Enable debug mode'
     )
     
     return parser.parse_args()
 
 def collect_data(args) -> Dict[str, pd.DataFrame]:
     """
-    지정된 소스 또는 모든 소스에서 데이터를 수집합니다.
+    Collect data from specified source or all sources.
     
     Parameters
     ----------
     args : argparse.Namespace
-        명령줄 인수
+        Command line arguments
         
     Returns
     -------
     Dict[str, pd.DataFrame]
-        수집된 데이터
+        Collected data
     """
-    logger.info("데이터 수집 시작")
+    logger.info("Starting data collection")
     
-    # 데이터 수집 객체 생성
+    # Create data acquisition object
     acquisition = DataAcquisition(
         credentials_path=args.credentials,
         config_path=args.config
     )
     
-    # 단일 소스 또는 모든 소스에서 데이터 수집
+    # Collect data from single source or all sources
     if args.action == 'collect' and args.source:
-        logger.info(f"소스 '{args.source}'에서 데이터 수집 중...")
+        logger.info(f"Collecting data from source '{args.source}'...")
         source_data = acquisition.collect_data_from_source(args.source)
         
         if source_data.empty:
-            logger.warning(f"소스 '{args.source}'에서 데이터를 수집할 수 없습니다.")
+            logger.warning(f"Cannot collect data from source '{args.source}'.")
             return {}
         
-        # CSV 및 DB에 저장
+        # Save to CSV and DB
         acquisition.save_to_csv(source_data, args.source)
         table_name = f"{args.source.lower()}_data"
         acquisition.save_to_database(source_data, table_name)
         
         return {args.source: source_data}
     
-    else:  # 모든 소스
-        logger.info("모든 활성화된 소스에서 데이터 수집 중...")
+    else:  # All sources
+        logger.info("Collecting data from all enabled sources...")
         return acquisition.run_collection_pipeline()
 
 def process_data(args, collected_data: Optional[Dict[str, pd.DataFrame]] = None) -> pd.DataFrame:
     """
-    수집된 데이터를 처리합니다.
+    Process collected data.
     
     Parameters
     ----------
     args : argparse.Namespace
-        명령줄 인수
+        Command line arguments
     collected_data : Dict[str, pd.DataFrame], optional
-        이미 수집된 데이터. None이면 DB에서 가져옵니다.
+        Already collected data. If None, fetch from DB.
         
     Returns
     -------
     pd.DataFrame
-        처리된 데이터
+        Processed data
     """
-    logger.info("데이터 처리 시작")
+    logger.info("Starting data processing")
     
-    # 데이터 처리 객체 생성
+    # Create data processor object
     processor = DataProcessor(config_path=args.config)
     
-    # DB 매니저 생성
+    # Create database manager
     db_manager = DatabaseManager(config_path=args.config)
     
-    # 수집된 데이터가 없으면 DB에서 가져옴
+    # If no collected data, fetch from DB
     if not collected_data:
-        logger.info("데이터베이스에서 원시 데이터 가져오기")
+        logger.info("Fetching raw data from database")
         collected_data = {}
         
         with db_manager:
-            # 테이블 목록 가져오기
+            # Get table list
             tables = db_manager.execute_query_fetchall(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%_data'"
             )
             
-            # 각 테이블에서 데이터 가져오기
+            # Fetch data from each table
             for table in tables:
                 table_name = table[0]
                 source_name = table_name.replace('_data', '')
@@ -156,92 +156,92 @@ def process_data(args, collected_data: Optional[Dict[str, pd.DataFrame]] = None)
                     data = db_manager.read_sql_table(table_name)
                     if not data.empty:
                         collected_data[source_name] = data
-                        logger.info(f"테이블 '{table_name}'에서 {len(data)} 행 로드됨")
+                        logger.info(f"Loaded {len(data)} rows from table '{table_name}'")
                 except Exception as e:
-                    logger.error(f"테이블 '{table_name}'에서 데이터 로드 실패: {e}")
+                    logger.error(f"Failed to load data from table '{table_name}': {e}")
     
-    # 수집된 데이터가 없으면 빈 DataFrame 반환
+    # Return empty DataFrame if no collected data
     if not collected_data:
-        logger.warning("처리할 데이터가 없습니다.")
+        logger.warning("No data to process.")
         return pd.DataFrame()
     
-    # 모든 DataFrame 병합
+    # Merge all DataFrames
     if len(collected_data) > 1:
         merged_data = processor.merge_dataframes(collected_data)
     else:
         source_name, df = next(iter(collected_data.items()))
         merged_data = df.copy()
     
-    # 데이터 처리 파이프라인 실행
+    # Execute data processing pipeline
     processed_data = processor.process_pipeline(merged_data)
     
-    # 처리된 데이터 저장
+    # Save processed data
     processor.save_processed_data(processed_data, f"{args.output_dir}/processed/")
     
-    # DB에 처리된 데이터 저장
+    # Save processed data to DB
     with db_manager:
         db_manager.dataframe_to_sql(processed_data, "processed_data", if_exists='replace')
     
-    logger.info(f"데이터 처리 완료, 처리된 행 수: {len(processed_data)}")
+    logger.info(f"Data processing completed, processed rows: {len(processed_data)}")
     return processed_data
 
 def analyze_data(args, processed_data: Optional[pd.DataFrame] = None) -> Dict[str, Any]:
     """
-    처리된 데이터를 분석합니다.
+    Analyze processed data.
     
     Parameters
     ----------
     args : argparse.Namespace
-        명령줄 인수
+        Command line arguments
     processed_data : pd.DataFrame, optional
-        처리된 데이터. None이면 DB에서 가져옵니다.
+        Processed data. If None, fetch from DB.
         
     Returns
     -------
     Dict[str, Any]
-        분석 결과
+        Analysis results
     """
-    logger.info("데이터 분석 시작")
+    logger.info("Starting data analysis")
     
-    # DB 매니저 생성
+    # Create database manager
     db_manager = DatabaseManager(config_path=args.config)
     
-    # 처리된 데이터가 없으면 DB에서 가져옴
+    # If no processed data, fetch from DB
     if processed_data is None or processed_data.empty:
-        logger.info("데이터베이스에서 처리된 데이터 가져오기")
+        logger.info("Fetching processed data from database")
         
         with db_manager:
             try:
                 processed_data = db_manager.read_sql_table("processed_data")
-                logger.info(f"처리된 데이터 로드됨, 행 수: {len(processed_data)}")
+                logger.info(f"Processed data loaded, rows: {len(processed_data)}")
             except Exception as e:
-                logger.error(f"처리된 데이터 로드 실패: {e}")
+                logger.error(f"Failed to load processed data: {e}")
                 return {}
     
-    # 데이터가 없으면 빈 결과 반환
+    # Return empty result if no data
     if processed_data.empty:
-        logger.warning("분석할 데이터가 없습니다.")
+        logger.warning("No data to analyze.")
         return {}
     
-    # 결과 저장용 디렉토리 생성
+    # Create directory for saving results
     os.makedirs(f"{args.output_dir}/analysis", exist_ok=True)
     
-    # 분석 결과 딕셔너리
+    # Analysis results dictionary
     analysis_results = {}
     
-    # 기본 통계량 계산
+    # Calculate basic statistics
     try:
         stats = processed_data.describe().to_dict()
         analysis_results['basic_stats'] = stats
         
-        # 통계 결과 CSV로 저장
+        # Save statistics results to CSV
         stats_df = processed_data.describe().reset_index()
         stats_df.to_csv(f"{args.output_dir}/analysis/basic_stats.csv")
-        logger.info("기본 통계량 계산 완료")
+        logger.info("Basic statistics calculation completed")
     except Exception as e:
-        logger.error(f"기본 통계량 계산 실패: {e}")
+        logger.error(f"Failed to calculate basic statistics: {e}")
     
-    # 소스별 요약
+    # Summary by source
     try:
         if 'source' in processed_data.columns:
             source_summary = processed_data.groupby('source').agg({
@@ -253,7 +253,7 @@ def analyze_data(args, processed_data: Optional[pd.DataFrame] = None) -> Dict[st
             
             analysis_results['source_summary'] = source_summary
             
-            # 소스별 요약 CSV로 저장
+            # Save source summary to CSV
             source_summary_df = processed_data.groupby('source').agg({
                 'impressions': 'sum',
                 'clicks': 'sum',
@@ -262,18 +262,18 @@ def analyze_data(args, processed_data: Optional[pd.DataFrame] = None) -> Dict[st
             }).reset_index()
             
             source_summary_df.to_csv(f"{args.output_dir}/analysis/source_summary.csv", index=False)
-            logger.info("소스별 요약 계산 완료")
+            logger.info("Source summary calculation completed")
     except Exception as e:
-        logger.error(f"소스별 요약 계산 실패: {e}")
+        logger.error(f"Failed to calculate source summary: {e}")
     
-    # 시계열 분석
+    # Time series analysis
     try:
         if 'date' in processed_data.columns:
-            # 날짜 형식 확인 및 변환
+            # Check and convert date format
             if processed_data['date'].dtype != 'datetime64[ns]':
                 processed_data['date'] = pd.to_datetime(processed_data['date'])
             
-            # 일별 집계
+            # Daily aggregation
             daily_data = processed_data.groupby('date').agg({
                 'impressions': 'sum',
                 'clicks': 'sum',
@@ -283,80 +283,80 @@ def analyze_data(args, processed_data: Optional[pd.DataFrame] = None) -> Dict[st
             
             analysis_results['time_series'] = daily_data.to_dict('records')
             
-            # 시계열 데이터 CSV로 저장
+            # Save time series data to CSV
             daily_data.to_csv(f"{args.output_dir}/analysis/daily_metrics.csv", index=False)
-            logger.info("시계열 분석 완료")
+            logger.info("Time series analysis completed")
     except Exception as e:
-        logger.error(f"시계열 분석 실패: {e}")
+        logger.error(f"Failed to perform time series analysis: {e}")
     
-    # 상관관계 분석
+    # Correlation analysis
     try:
         numeric_cols = processed_data.select_dtypes(include=['number']).columns
         corr_matrix = processed_data[numeric_cols].corr().to_dict()
         
         analysis_results['correlation'] = corr_matrix
         
-        # 상관관계 행렬 CSV로 저장
+        # Save correlation matrix to CSV
         corr_df = processed_data[numeric_cols].corr().reset_index()
         corr_df.to_csv(f"{args.output_dir}/analysis/correlation_matrix.csv", index=False)
-        logger.info("상관관계 분석 완료")
+        logger.info("Correlation analysis completed")
     except Exception as e:
-        logger.error(f"상관관계 분석 실패: {e}")
+        logger.error(f"Failed to perform correlation analysis: {e}")
     
-    logger.info("데이터 분석 완료")
+    logger.info("Data analysis completed")
     return analysis_results
 
 def visualize_data(args, processed_data: Optional[pd.DataFrame] = None, 
                   analysis_results: Optional[Dict[str, Any]] = None) -> bool:
     """
-    처리된 데이터와 분석 결과를 시각화합니다.
+    Visualize processed data and analysis results.
     
     Parameters
     ----------
     args : argparse.Namespace
-        명령줄 인수
+        Command line arguments
     processed_data : pd.DataFrame, optional
-        처리된 데이터. None이면 DB에서 가져옵니다.
+        Processed data. If None, fetch from DB.
     analysis_results : Dict[str, Any], optional
-        분석 결과. None이면 분석 단계에서 생성된 CSV 파일에서 가져옵니다.
+        Analysis results. If None, fetch from CSV files generated in analysis step.
         
     Returns
     -------
     bool
-        성공 여부
+        Success status
     """
-    logger.info("데이터 시각화 시작")
+    logger.info("Starting data visualization")
     
-    # DB 매니저 생성
+    # Create database manager
     db_manager = DatabaseManager(config_path=args.config)
     
-    # 처리된 데이터가 없으면 DB에서 가져옴
+    # If no processed data, fetch from DB
     if processed_data is None or processed_data.empty:
-        logger.info("데이터베이스에서 처리된 데이터 가져오기")
+        logger.info("Fetching processed data from database")
         
         with db_manager:
             try:
                 processed_data = db_manager.read_sql_table("processed_data")
-                logger.info(f"처리된 데이터 로드됨, 행 수: {len(processed_data)}")
+                logger.info(f"Processed data loaded, rows: {len(processed_data)}")
             except Exception as e:
-                logger.error(f"처리된 데이터 로드 실패: {e}")
+                logger.error(f"Failed to load processed data: {e}")
                 return False
     
-    # 데이터가 없으면 실패 반환
+    # Return false if no data
     if processed_data.empty:
-        logger.warning("시각화할 데이터가 없습니다.")
+        logger.warning("No data to visualize.")
         return False
     
-    # 시각화 결과 저장용 디렉토리 생성
+    # Create directory for saving visualization results
     viz_dir = f"{args.output_dir}/visualizations"
     os.makedirs(viz_dir, exist_ok=True)
     
     try:
-        # 날짜 형식 확인 및 변환
+        # Check and convert date format
         if 'date' in processed_data.columns and processed_data['date'].dtype != 'datetime64[ns]':
             processed_data['date'] = pd.to_datetime(processed_data['date'])
         
-        # 1. 상관관계 히트맵
+        # 1. Correlation heatmap
         try:
             numeric_cols = processed_data.select_dtypes(include=['number']).columns
             fig1, ax1 = plotting.create_correlation_heatmap(
@@ -364,14 +364,14 @@ def visualize_data(args, processed_data: Optional[pd.DataFrame] = None,
                 columns=numeric_cols,
                 save_path=f"{viz_dir}/correlation_heatmap.png"
             )
-            logger.info("상관관계 히트맵 생성 완료")
+            logger.info("Correlation heatmap creation completed")
         except Exception as e:
-            logger.error(f"상관관계 히트맵 생성 실패: {e}")
+            logger.error(f"Failed to create correlation heatmap: {e}")
         
-        # 2. 시계열 그래프 (일별 지표)
+        # 2. Time series graph (daily metrics)
         if 'date' in processed_data.columns:
             try:
-                # 일별 데이터 집계
+                # Daily data aggregation
                 daily_data = processed_data.groupby('date').agg({
                     'impressions': 'sum',
                     'clicks': 'sum',
@@ -379,41 +379,41 @@ def visualize_data(args, processed_data: Optional[pd.DataFrame] = None,
                     'cost': 'sum'
                 }).reset_index()
                 
-                # 날짜순 정렬
+                # Sort by date
                 daily_data = daily_data.sort_values('date')
                 
-                # 시계열 그래프 생성
+                # Create time series graph
                 fig2, ax2 = plotting.create_time_series_plot(
                     daily_data,
                     date_column='date',
                     value_columns=['clicks', 'conversions'],
-                    title='일별 클릭 및 전환 추이',
+                    title='Daily clicks and conversions trend',
                     figsize=(12, 6),
                     save_path=f"{viz_dir}/daily_metrics.png"
                 )
-                logger.info("시계열 그래프 생성 완료")
+                logger.info("Time series graph creation completed")
                 
-                # 인터랙티브 시계열 그래프
+                # Interactive time series graph
                 fig_interactive = plotting.create_interactive_plot(
                     daily_data,
                     plot_type='line',
                     x='date',
                     y=['impressions', 'clicks', 'conversions', 'cost'],
-                    title='일별 지표 추이 (인터랙티브)'
+                    title='Daily metrics trend (interactive)'
                 )
                 
                 plotting.save_plot_to_html(
                     fig_interactive,
                     f"{viz_dir}/daily_metrics_interactive.html"
                 )
-                logger.info("인터랙티브 시계열 그래프 생성 완료")
+                logger.info("Interactive time series graph creation completed")
             except Exception as e:
-                logger.error(f"시계열 그래프 생성 실패: {e}")
+                logger.error(f"Failed to create time series graph: {e}")
         
-        # 3. 소스별 성과 막대 그래프
+        # 3. Source performance bar chart
         if 'source' in processed_data.columns:
             try:
-                # 소스별 데이터 집계
+                # Source data aggregation
                 source_data = processed_data.groupby('source').agg({
                     'impressions': 'sum',
                     'clicks': 'sum',
@@ -421,33 +421,33 @@ def visualize_data(args, processed_data: Optional[pd.DataFrame] = None,
                     'cost': 'sum'
                 }).reset_index()
                 
-                # 소스별 막대 그래프 생성
+                # Create source bar chart
                 fig3, ax3 = plotting.create_bar_chart(
                     source_data,
                     category_column='source',
                     value_column='conversions',
-                    title='소스별 전환 수',
+                    title='Conversions by source',
                     figsize=(10, 6),
                     save_path=f"{viz_dir}/source_conversions.png"
                 )
-                logger.info("소스별 막대 그래프 생성 완료")
+                logger.info("Source bar chart creation completed")
                 
-                # 소스별 비용 막대 그래프
+                # Source cost bar chart
                 fig4, ax4 = plotting.create_bar_chart(
                     source_data,
                     category_column='source',
                     value_column='cost',
-                    title='소스별 비용',
+                    title='Cost by source',
                     figsize=(10, 6),
                     save_path=f"{viz_dir}/source_cost.png"
                 )
-                logger.info("소스별 비용 막대 그래프 생성 완료")
+                logger.info("Source cost bar chart creation completed")
             except Exception as e:
-                logger.error(f"소스별 그래프 생성 실패: {e}")
+                logger.error(f"Failed to create source charts: {e}")
         
-        # 4. 비용 vs 전환 산점도
+        # 4. Cost vs conversions scatter plot
         try:
-            # 캠페인 또는 소스별 데이터
+            # Campaign or source data
             scatter_data = processed_data.copy()
             
             if 'campaign' in processed_data.columns:
@@ -464,36 +464,36 @@ def visualize_data(args, processed_data: Optional[pd.DataFrame] = None,
                     'cost': 'sum'
                 }).reset_index()
                 
-                # 산점도 생성
+                # Create scatter plot
                 fig5, ax5 = plotting.create_scatter_plot(
                     scatter_data,
                     x_column='cost',
                     y_column='conversions',
                     size_column='clicks',
-                    title=f'{group_by}별 비용 vs 전환 (크기: 클릭 수)',
+                    title=f'Cost vs conversions by {group_by} (size: clicks)',
                     add_trendline=True,
                     save_path=f"{viz_dir}/cost_vs_conversions.png"
                 )
-                logger.info("비용 vs 전환 산점도 생성 완료")
+                logger.info("Cost vs conversions scatter plot creation completed")
             
         except Exception as e:
-            logger.error(f"산점도 생성 실패: {e}")
+            logger.error(f"Failed to create scatter plot: {e}")
         
-        # 5. 파이 차트 (소스별 또는 캠페인별 비율)
+        # 5. Pie chart (source or campaign ratio)
         try:
             if 'source' in processed_data.columns:
-                # 소스별 전환 비율
+                # Source conversion ratio
                 fig6, ax6 = plotting.create_pie_chart(
                     processed_data,
                     category_column='source',
                     value_column='conversions',
-                    title='소스별 전환 비율',
+                    title='Conversion ratio by source',
                     save_path=f"{viz_dir}/source_conversion_pie.png"
                 )
-                logger.info("소스별 전환 비율 파이 차트 생성 완료")
+                logger.info("Source conversion ratio pie chart creation completed")
             
             if 'campaign' in processed_data.columns:
-                # 캠페인별 비용 비율 (상위 5개)
+                # Campaign cost ratio (top 5)
                 campaign_cost = processed_data.groupby('campaign')['cost'].sum().reset_index()
                 campaign_cost = campaign_cost.sort_values('cost', ascending=False).head(5)
                 
@@ -501,98 +501,98 @@ def visualize_data(args, processed_data: Optional[pd.DataFrame] = None,
                     campaign_cost,
                     category_column='campaign',
                     value_column='cost',
-                    title='상위 5개 캠페인별 비용 비율',
+                    title='Cost ratio by top 5 campaigns',
                     save_path=f"{viz_dir}/campaign_cost_pie.png"
                 )
-                logger.info("캠페인별 비용 비율 파이 차트 생성 완료")
+                logger.info("Campaign cost ratio pie chart creation completed")
         except Exception as e:
-            logger.error(f"파이 차트 생성 실패: {e}")
+            logger.error(f"Failed to create pie chart: {e}")
         
-        logger.info(f"데이터 시각화 완료. 결과는 '{viz_dir}' 디렉토리에 저장되었습니다.")
+        logger.info(f"Data visualization completed. Results saved to '{viz_dir}' directory.")
         return True
         
     except Exception as e:
-        logger.error(f"데이터 시각화 중 오류 발생: {e}")
+        logger.error(f"Error occurred during data visualization: {e}")
         return False
 
 def run_dashboard(args):
     """
-    Streamlit 대시보드를 실행합니다.
+    Run Streamlit dashboard.
     
     Parameters
     ----------
     args : argparse.Namespace
-        명령줄 인수
+        Command line arguments
     """
-    logger.info("Streamlit 대시보드 실행 중...")
+    logger.info("Running Streamlit dashboard...")
     
     try:
         dashboard_path = "src/app/dashboard.py"
         
-        # Streamlit 실행
+        # Run Streamlit
         cmd = ["streamlit", "run", dashboard_path, "--server.port=8501"]
         
         if args.debug:
             cmd.append("--logger.level=debug")
         
-        logger.info(f"대시보드 명령어 실행: {' '.join(cmd)}")
+        logger.info(f"Executing dashboard command: {' '.join(cmd)}")
         
-        # Streamlit 프로세스 시작
+        # Start Streamlit process
         process = subprocess.Popen(cmd)
         
-        logger.info("대시보드가 시작되었습니다. 브라우저에서 http://localhost:8501로 접속하세요.")
-        logger.info("종료하려면 Ctrl+C를 누르세요.")
+        logger.info("Dashboard started. Access http://localhost:8501 in your browser.")
+        logger.info("Press Ctrl+C to exit.")
         
-        # 프로세스가 종료될 때까지 대기
+        # Wait until process terminates
         process.wait()
         
     except Exception as e:
-        logger.error(f"대시보드 실행 중 오류 발생: {e}")
+        logger.error(f"Error occurred while running dashboard: {e}")
         return False
     
     return True
 
 def run_pipeline(args):
     """
-    전체 데이터 파이프라인을 실행합니다.
+    Run complete data pipeline.
     
     Parameters
     ----------
     args : argparse.Namespace
-        명령줄 인수
+        Command line arguments
         
     Returns
     -------
     bool
-        성공 여부
+        Success status
     """
-    logger.info("전체 데이터 파이프라인 실행 시작")
+    logger.info("Starting complete data pipeline execution")
     
     try:
-        # 1. 데이터 수집
+        # 1. Data collection
         collected_data = collect_data(args)
         
         if not collected_data:
-            logger.warning("수집된 데이터가 없거나 수집에 실패했습니다.")
+            logger.warning("No collected data or collection failed.")
             return False
         
-        # 2. 데이터 처리
+        # 2. Data processing
         processed_data = process_data(args, collected_data)
         
         if processed_data.empty:
-            logger.warning("처리된 데이터가 없거나 처리에 실패했습니다.")
+            logger.warning("No processed data or processing failed.")
             return False
         
-        # 3. 데이터 분석
+        # 3. Data analysis
         analysis_results = analyze_data(args, processed_data)
         
-        # 4. 데이터 시각화
+        # 4. Data visualization
         visualize_data(args, processed_data, analysis_results)
         
-        logger.info("전체 데이터 파이프라인 실행 완료")
+        logger.info("Complete data pipeline execution completed")
         
-        # 5. 대시보드 실행 여부 확인
-        run_dashboard_prompt = input("Streamlit 대시보드를 실행하시겠습니까? (y/n): ").strip().lower()
+        # 5. Check dashboard execution
+        run_dashboard_prompt = input("Would you like to run Streamlit dashboard? (y/n): ").strip().lower()
         
         if run_dashboard_prompt == 'y':
             run_dashboard(args)
@@ -600,20 +600,20 @@ def run_pipeline(args):
         return True
         
     except Exception as e:
-        logger.error(f"파이프라인 실행 중 오류 발생: {e}")
+        logger.error(f"Error occurred during pipeline execution: {e}")
         return False
 
 def main():
-    """메인 함수."""
-    # 명령줄 인수 파싱
+    """Main function."""
+    # Parse command line arguments
     args = parse_arguments()
     
-    # 디버그 모드 설정
+    # Set debug mode
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
-        logger.debug("디버그 모드가 활성화되었습니다.")
+        logger.debug("Debug mode activated.")
     
-    # 선택된 작업 실행
+    # Execute selected action
     try:
         if args.action == 'collect' or args.action == 'collect-all':
             collect_data(args)
@@ -628,21 +628,21 @@ def main():
         elif args.action == 'pipeline':
             run_pipeline(args)
         else:
-            logger.error(f"알 수 없는 작업: {args.action}")
+            logger.error(f"Unknown action: {args.action}")
             return 1
         
         return 0
         
     except KeyboardInterrupt:
-        logger.info("사용자에 의해 프로그램이 중단되었습니다.")
+        logger.info("Program interrupted by user.")
         return 130
     except Exception as e:
-        logger.error(f"예상치 못한 오류 발생: {e}")
+        logger.error(f"Unexpected error occurred: {e}")
         if args.debug:
             import traceback
             traceback.print_exc()
         return 1
 
 if __name__ == "__main__":
-    # 종료 코드 반환
+    # Return exit code
     sys.exit(main())

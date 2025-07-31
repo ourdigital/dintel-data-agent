@@ -1,12 +1,12 @@
-# 데이터 파이프라인 설정
+# Data Pipeline Configuration
 
-# 데이터베이스 설정
+# Database Configuration
 database:
   type: "sqlite"  # sqlite 또는 mysql
-  # SQLite 설정
+  # SQLite Configuration
   sqlite:
     db_path: "data/database.db"
-  # MySQL 설정 (선택적)
+  # MySQL Configuration (optional)
   mysql:
     host: "localhost"
     port: 3306
@@ -14,28 +14,64 @@ database:
     user: "username"
     password: "password"
 
-# 데이터 수집 설정
+# Data Collection Configuration
 collection:
-  # 일반 설정
+  # General Settings
   default_date_range: "last_30_days"  # last_7_days, last_30_days, last_90_days, custom
   custom_date_range:
     start_date: "2024-01-01"
     end_date: "2024-01-31"
   
-  # 소스별 설정
+  # Source-specific Settings
   sources:
     google_analytics:
       enabled: true
+      # Enhanced GA4 metrics
       metrics:
+        - "activeUsers"
+        - "newUsers" 
         - "sessions"
-        - "pageviews"
+        - "screenPageViews"
+        - "userEngagementDuration"
         - "bounceRate"
-        - "avgSessionDuration"
+        - "averageSessionDuration"
       dimensions:
         - "date"
         - "deviceCategory"
         - "country"
       schedule: "daily"  # daily, weekly, monthly
+      
+      # Google Sheets Integration
+      sheets:
+        enabled: true
+        monthly_worksheet: "raw_data"      # Monthly reports
+        daily_worksheet: "daily_metrics"   # Daily reports
+        insert_mode: "top"                 # "top" or "append"
+        
+      # Report Types
+      reports:
+        monthly:
+          enabled: true
+          metrics:
+            - "activeUsers"
+            - "newUsers"
+            - "sessions"
+            - "screenPageViews"
+            - "userEngagementDuration"
+            - "bounceRate"
+          dimensions: []  # No dimensions for monthly summary
+          
+        daily:
+          enabled: true
+          days: 7  # Number of days to include
+          metrics:
+            - "activeUsers"
+            - "sessions"
+            - "screenPageViews"
+            - "userEngagementDuration"
+            - "bounceRate"
+          dimensions:
+            - "date"
     
     google_search_console:
       enabled: true
@@ -86,7 +122,7 @@ collection:
       csv_path: "data/raw/kakao_ads/"
       schedule: "weekly"
 
-# 데이터 처리 설정
+# Data Processing Configuration
 processing:
   clean_duplicates: true
   handle_missing_values: "drop"  # drop, fill_mean, fill_median, fill_zero
@@ -96,7 +132,7 @@ processing:
     - "date"
     - "campaign_id"
 
-# 분석 설정
+# Analysis Configuration
 analysis:
   default_metrics:
     - "ctr"
@@ -107,14 +143,14 @@ analysis:
   time_series_analysis: true
   anomaly_detection: false
 
-# 시각화 설정
+# Visualization Configuration
 visualization:
   default_chart_type: "line"  # line, bar, scatter, pie
   color_palette: "Set1"
   save_charts: true
   output_dir: "data/output/charts/"
 
-# Streamlit 앱 설정
+# Streamlit App Configuration
 app:
   title: "데이터 분석 대시보드"
   theme:
@@ -128,7 +164,7 @@ app:
     - "custom_reports"
   default_page: "overview"
 
-# 로깅 설정
+# Logging Configuration
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
   log_to_file: true
